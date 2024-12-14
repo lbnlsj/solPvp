@@ -1,0 +1,215 @@
+Skip to content
+Navigation Menu
+kevinheavey
+solders
+
+Type / to search
+Code
+Issues
+5
+Pull requests
+Actions
+Projects
+Security
+Insights
+Owner avatar
+solders
+Public
+kevinheavey/solders
+Go to file
+t
+Add file
+Folders and files
+Name
+Latest commit
+kevinheavey
+kevinheavey
+Merge pull request #125 from kevinheavey/unsubscribe-result
+c857d3d
+ ·
+last month
+History
+.github/workflows
+Drop support for bankrun on musllinux-i686 as its dependencies no lon…
+last month
+.vscode
+driveby: include vscode workspace settings in git
+last year
+crates
+add UnsubscribeResult parsing
+last month
+docs
+Bump version: 0.22.0 → 0.23.0
+last month
+python/solders
+add UnsubscribeResult parsing
+last month
+src
+don't use crates that require ring on linux-aarch64
+10 months ago
+tests
+add UnsubscribeResult parsing
+last month
+.bumpversion.cfg
+Bump version: 0.22.0 → 0.23.0
+last month
+.gitignore
+driveby: include vscode workspace settings in git
+last year
+CHANGELOG.md
+add UnsubscribeResult parsing
+last month
+Cargo.lock
+update lock file
+last month
+Cargo.toml
+Bump version: 0.22.0 → 0.23.0
+last month
+LICENSE
+Initial commit
+3 years ago
+Makefile
+fix makefile
+last year
+README.md
+remove annoying badge
+last year
+bench.json
+init bench.json
+2 years ago
+mkdocs.yaml
+rename to solders
+2 years ago
+mypy.ini
+lint
+last year
+poetry.lock
+poetry update
+last year
+poetry.toml
+init files
+3 years ago
+pyproject.toml
+Bump version: 0.22.0 → 0.23.0
+last month
+pytest.ini
+add ci
+2 years ago
+rust-toolchain.toml
+start upgrading to 2.0
+2 months ago
+Repository files navigation
+README
+Apache-2.0 license
+
+PyPI version License: MIT
+
+Solders
+solders is a high-performance Python toolkit for Solana, written in Rust. It provides robust solutions to the following problems:
+
+Core SDK stuff: keypairs, pubkeys, signing and serializing transactions - that sort of thing.
+RPC stuff: building requests and parsing responses (no networking stuff - if you want help with that, solana-py is your friend).
+Integration testing stuff: the solders.bankrun module is an alternative to solana-test-validator that's much more convenient and much faster. It's based on solana-program-test if you know that is.
+What about solana-py?
+solders and solana-py are good friends. solana-py uses solders under the hood extensively in its core API and RPC API. The main differences are:
+
+solders doesn't have functions to actually interact with the RPC server (though solana-py does use the RPC code from solders).
+solders doesn't provide SPL Token and SPL Memo clients.
+solana-py may not have support for all the RPC requests and responses provided by solders.
+solana-py doesn't have anything like the bankrun testing kit.
+Since solana-py uses solders under the hood and they don't duplicate each other's features, you should just use whichever library you need.
+
+Installation
+pip install solders
+Note: Requires Python >= 3.7.
+
+Example Usage
+>>> from solders.message import Message
+>>> from solders.keypair import Keypair
+>>> from solders.instruction import Instruction
+>>> from solders.hash import Hash
+>>> from solders.transaction import Transaction
+>>> from solders.pubkey import Pubkey
+>>> program_id = Pubkey.default()
+>>> arbitrary_instruction_data = bytes([1])
+>>> accounts = []
+>>> instruction = Instruction(program_id, arbitrary_instruction_data, accounts)
+>>> payer = Keypair()
+>>> message = Message([instruction], payer.pubkey())
+>>> blockhash = Hash.default()  # replace with a real blockhash
+>>> tx = Transaction([payer], message, blockhash)
+Development
+Setup
+Install poetry
+Install dev dependencies:
+poetry install
+Activate the poetry shell:
+poetry shell
+Testing
+Run maturin develop to compile the Rust code.
+Run make fmt, make lint, and make test.
+About
+A high-performance Python toolkit for Solana, written in Rust
+
+kevinheavey.github.io/solders/
+Topics
+python rust blockchain nft solana pyo3 defi
+Resources
+ Readme
+License
+ Apache-2.0 license
+ Activity
+Stars
+ 254 stars
+Watchers
+ 4 watching
+Forks
+ 30 forks
+Report repository
+Releases 40
+v0.23.0
+Latest
+last month
++ 39 releases
+Used by 774
+@nguyenvanhuan243
+@tiamat218
+@OkarFabianTheWise
+@CodeCat-maker
+@0xOrdinal
+@marmarko
+@justkareem
+@yllvar
++ 766
+Contributors
+6
+@kevinheavey
+@hkey0
+@benjiqq
+@Morgandri1
+@RyDeR-69
+@bantalon
+Deployments
+132
+ github-pages last month
++ 131 deployments
+Languages
+Rust
+56.1%
+
+Python
+43.8%
+
+Makefile
+0.1%
+Footer
+© 2024 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Docs
+Contact
+Manage cookies
+Do not share my personal information
