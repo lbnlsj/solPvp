@@ -7,6 +7,42 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 </head>
+<!-- 在 body 标签结束前添加模态框 HTML -->
+<!-- 在 </body> 前添加 -->
+<div id="transferModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 w-96">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold" id="modalTitle">代币转账</h3>
+            <button onclick="closeTransferModal()" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">代币地址</label>
+                <input type="text" id="tokenAddress" class="w-full px-3 py-2 border rounded-md"
+                       placeholder="输入代币地址或SOL">
+                <p class="text-sm text-gray-500">输入"SOL"表示SOL代币转账</p>
+            </div>
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">数量</label>
+                <input type="number" id="transferAmount" class="w-full px-3 py-2 border rounded-md"
+                       placeholder="输入数量"
+                       step="any">
+            </div>
+        </div>
+        <div class="flex justify-end space-x-3 mt-6">
+            <button onclick="closeTransferModal()"
+                    class="px-4 py-2 border rounded-md hover:bg-gray-100">取消
+            </button>
+            <button onclick="submitTransfer()"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">确认
+            </button>
+        </div>
+    </div>
+</div>
 <body class="bg-gray-100">
 <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold mb-8">Solana 交易机器人</h1>
@@ -17,10 +53,10 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-2">
                 <label class="block">买入花费 SOL</label>
-                <input type="number" id="maxSolPerTrade" class="w-full border rounded px-3 py-2" value="1.0" step="0.1">
+                <input type="number" id="maxSolPerTrade" class="w-full border rounded px-3 py-2" value="1.0" step="any">
             </div>
             <div class="space-y-2">
-                <label class="block">Gas 费用 (SOL)</label>
+                <label class="block">Gas 费用 (1-10)</label>
                 <input type="number" id="gasFee" class="w-full border rounded px-3 py-2" value="0.0001" step="0.0001">
             </div>
             <div class="space-y-2">
@@ -29,7 +65,7 @@
             </div>
             <div class="space-y-2">
                 <label class="block">卖出比例 (%)</label>
-                <input type="number" id="sellPercentage" class="w-full border rounded px-3 py-2" value="50" step="1">
+                <input type="number" id="sellPercentage" class="w-full border rounded px-3 py-2" value="50" step="any">
             </div>
         </div>
         <button onclick="saveConfig()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
@@ -68,8 +104,8 @@
             <h2 class="text-xl font-semibold mb-4">钱包管理</h2>
             <div class="space-y-4">
                 <div class="flex gap-2">
-                        <textarea id="walletAddresses" rows="3" class="flex-1 border rounded px-3 py-2"
-                                  placeholder="输入钱包私钥，每行一个"></textarea>
+                    <textarea id="walletAddresses" rows="3" class="flex-1 border rounded px-3 py-2"
+                              placeholder="输入钱包私钥，每行一个"></textarea>
                     <div class="space-y-2">
                         <button onclick="addWallets()"
                                 class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
