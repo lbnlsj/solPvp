@@ -2,6 +2,9 @@ from flask import Flask, jsonify, render_template, request
 from datetime import datetime
 import json
 import os
+
+if not os.path.isdir('data'):
+    os.mkdir('data')
 import asyncio
 from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
@@ -290,8 +293,6 @@ def get_transactions():
 
 
 if __name__ == '__main__':
-    if not os.path.isdir('data'):
-        os.mkdir('data')
     try:
         app.run(debug=True, port=9488, host='0.0.0.0')
     finally:
