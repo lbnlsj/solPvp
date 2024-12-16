@@ -112,7 +112,7 @@ def buy_token(mint_str: str, keypair: Keypair, sol_amount: float = 0.01, slippag
         Tuple of (success: bool, transaction_signature: Optional[str])
     """
     try:
-        print(f"Buying token {mint_str} with wallet {keypair.pubkey()}")
+        # print(f"Buying token {mint_str} with wallet {keypair.pubkey()}")
         # ... 其他代码保持不变，但把所有 keypair 替换为 keypair ...
 
         # Get coin data
@@ -126,10 +126,10 @@ def buy_token(mint_str: str, keypair: Keypair, sol_amount: float = 0.01, slippag
         amount = sol_lamports
         slippage_adjusted = int(sol_lamports * (1 + slippage / 100))
 
-        print(f"Amount (lamports): {amount}")
-        print(f"Max sol cost (lamports): {slippage_adjusted}")
-        print(f"Virtual sol reserves: {coin_data.virtual_sol_reserves}")
-        print(f"Virtual token reserves: {coin_data.virtual_token_reserves}")
+        # print(f"Amount (lamports): {amount}")
+        # print(f"Max sol cost (lamports): {slippage_adjusted}")
+        # print(f"Virtual sol reserves: {coin_data.virtual_sol_reserves}")
+        # print(f"Virtual token reserves: {coin_data.virtual_token_reserves}")
 
         # Get or create associated token account
         user_ata = get_associated_token_address(keypair.pubkey(), coin_data.mint)
@@ -203,7 +203,7 @@ def buy_token(mint_str: str, keypair: Keypair, sol_amount: float = 0.01, slippag
 
         # Send transaction
         sig = client.send_transaction(tx, opts=TxOpts(skip_preflight=True)).value
-        print(f"Buy transaction sent: {sig}")
+        # print(f"Buy transaction sent: {sig}")
 
         return True, str(sig)
 
@@ -259,9 +259,9 @@ def sell_token(mint_str: str, keypair: Keypair, percentage: int = 100, slippage:
         expected_sol = (virtual_sol * amount) / (virtual_tokens + amount)
         min_sol = int(expected_sol * (1 - slippage / 100) * 1e9)
 
-        print(f"Amount to sell: {amount}")
-        print(f"Expected SOL: {expected_sol}")
-        print(f"Minimum SOL: {min_sol}")
+        # print(f"Amount to sell: {amount}")
+        # print(f"Expected SOL: {expected_sol}")
+        # print(f"Minimum SOL: {min_sol}")
 
         # Create account metas
         keys = [

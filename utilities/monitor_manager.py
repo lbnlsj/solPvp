@@ -42,12 +42,14 @@ class MonitorManager:
     async def keepalive(self):
         while self.is_running and self.websocket:
             try:
+                print('ping')
                 if self.websocket.closed:
                     print("WebSocket closed, initiating reconnection...")
                     await self.reconnect()
                     continue
 
                 await self.websocket.ping()
+                print('ping finish')
                 try:
                     await asyncio.wait_for(self.websocket.pong(), timeout=self.ping_timeout)
                 except asyncio.TimeoutError:
@@ -95,6 +97,7 @@ class MonitorManager:
             print('正在运行中，退出')
             return
 
+        print('开始运行监控')
         self.is_running = True
         program_id = program_id or self.TOKEN_PROGRAM_ID
 
