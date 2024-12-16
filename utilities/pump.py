@@ -1,3 +1,4 @@
+import traceback
 import time
 import os
 import json
@@ -306,6 +307,7 @@ def sell_token(mint_str: str, keypair: Keypair, percentage: int = 100, slippage:
 
     except Exception as e:
         print(f"Error during sell: {e}")
+        traceback.print_exc()
         return sell_token(mint_str, keypair, percentage, slippage)
         # return False, None
 

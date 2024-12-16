@@ -195,41 +195,73 @@ class MonitorManager:
     @staticmethod
     def parse_create_event_log(base64_log: str) -> Optional[TokenCreationInfo]:
         """
-        Parse create event log data
-        Args:
-            base64_log: Base64 encoded log data
-        Returns:
-            TokenCreationInfo if successful
+        解析创建事件日志数据，带有健壮的错误处理
+        参数:
+            base64_log: Base64编码的日志数据
+        返回:
+            成功则返回TokenCreationInfo，失败返回None
         """
         try:
             buffer = base64.b64decode(base64_log)
-            offset = [8]  # Skip discriminator
+            offset = [8]  # 跳过鉴别器
 
             def parse_string() -> str:
-                length = int.from_bytes(buffer[offset[0]:offset[0] + 4], 'little')
-                offset[0] += 4
-                string_data = buffer[offset[0]:offset[0] + length].decode('utf-8')
-                offset[0] += length
-                return string_data
+                try:
+                    length = int.from_bytes(buffer[offset[0]:offset[0] + 4], 'little')
+                    offset[0] += 4
+
+                    # 添加边界检查
+                    if offset[0] + length > len(buffer):
+                        raise ValueError(f"字符串长度 {length} 超出缓冲区边界")
+
+                    # 首先尝试 UTF-8
+                    try:
+                        string_data = buffer[offset[0]:offset[0] + length].decode('utf-8')
+                    except UnicodeDecodeError:
+                        # 降级处理非UTF-8数据
+                        raw_bytes = buffer[offset[0]:offset[0] + length]
+                        # 过滤掉不可打印字符并解码
+                        string_data = ''.join(chr(b) if 32 <= b <= 126 else '_' for b in raw_bytes)
+
+                    offset[0] += length
+                    return string_data.strip()
+                except Exception as e:
+                    print(f"解析字符串时在偏移量 {offset[0]} 处发生错误: {e}")
+                    # 错误时返回占位符
+                    return "unknown"
 
             def parse_public_key() -> str:
+                if offset[0] + 32 > len(buffer):
+                    raise ValueError("缓冲区太短，无法解析公钥")
                 key_bytes = buffer[offset[0]:offset[0] + 32]
                 offset[0] += 32
                 return str(Pubkey(key_bytes))
 
-            name = parse_string()
-            symbol = parse_string()
-            _ = parse_string()  # uri
-            mint = parse_public_key()
+            try:
+                name = parse_string()
+                symbol = parse_string()
+                _ = parse_string()  # uri
+                mint = parse_public_key()
 
-            return TokenCreationInfo(
-                name=name,
-                symbol=symbol,
-                mint=mint,
-                date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            )
+                # 验证解析的数据
+                if not all([name, symbol, mint]):
+                    raise ValueError("缺少必需的字段")
+
+                return TokenCreationInfo(
+                    name=name,
+                    symbol=symbol,
+                    mint=mint,
+                    date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                )
+            except Exception as e:
+                print(f"解析代币数据时发生错误: {e}")
+                print(f"缓冲区长度: {len(buffer)}, 当前偏移量: {offset[0]}")
+                # 可选的调试输出
+                # print("缓冲区十六进制:", buffer.hex())
+                return None
+
         except Exception as e:
-            print(f"Error parsing create event log: {e}")
+            print(f"解码base64数据时发生错误: {e}")
             return None
 
     def is_pump_token_creation(self, logs: List[str]) -> Optional[TokenCreationInfo]:
