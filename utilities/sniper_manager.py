@@ -243,23 +243,25 @@ class SniperManager:
         if not self.get_status():
             return False
 
-        try:
-            # Signal the process to stop
-            self.stop_event.set()
-
-            # Wait for process to terminate
-            if self.process:
-                self.process.join(timeout=5)
-                if self.process.is_alive():
-                    self.process.terminate()
-                    self.process.join()
-                self.process = None
-
-            self.save_status(False)
-            return True
-        except Exception as e:
-            print(f"Error stopping sniper process: {e}")
-            return False
+        self.save_status(False)
+        return True
+        # try:
+        #     # Signal the process to stop
+        #     self.stop_event.set()
+        #
+        #     # Wait for process to terminate
+        #     if self.process:
+        #         self.process.join(timeout=5)
+        #         if self.process.is_alive():
+        #             self.process.terminate()
+        #             self.process.join()
+        #         self.process = None
+        #
+        #     self.save_status(False)
+        #     return True
+        # except Exception as e:
+        #     print(f"Error stopping sniper process: {e}")
+        #     return False
 
 
 def save_transaction(data_dir: str, tx_data: Dict):

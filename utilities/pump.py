@@ -66,7 +66,11 @@ def get_coin_data(mint_str: str) -> Optional[CoinData]:
         associated_bonding_curve = get_associated_token_address(bonding_curve, mint)
 
         # Get account info
-        account_info = client.get_account_info(bonding_curve)
+        try:
+            account_info = client.get_account_info(bonding_curve)
+        except Exception:
+            return get_coin_data(mint_str)
+
         if not account_info:
             return None
 
@@ -91,6 +95,7 @@ def get_coin_data(mint_str: str) -> Optional[CoinData]:
         )
     except Exception as e:
         print(f"get_coin_data error: {e}")
+        traceback.print_exc()
         return None
 
 

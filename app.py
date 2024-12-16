@@ -15,8 +15,28 @@ from utilities.token_manager import TokenManager
 from utilities.transfer_handler import TransferHandler
 from utilities.monitor_manager import MonitorManager
 from utilities.solana_client import SolanaClient
+import logging
+
+
+# 配置 Flask 日志
+class NoRequestFilter(logging.Filter):
+    def filter(self,record):
+        return not (
+                '/api/status' in record.getMessage() or
+                '/api/transactions' in record.getMessage() or
+                '/api/sniper/status' in record.getMessage()
+            )
+
+
+# 获取 Werkzeug 日志记录器并添加过滤器
+logging.getLogger('werkzeug').addFilter(NoRequestFilter())
 
 app = Flask(__name__)
+logger = app.logger
+
+exclude_access_log_filter = NoRequestFilter()
+app.logger.addFilter(exclude_access_log_filter)
+
 executor = ThreadPoolExecutor()
 loop = None
 
@@ -28,7 +48,7 @@ RPC_URL = "https://staked.helius-rpc.com?api-key=bc8bd2ae-8330-4a02-9c98-2970d98
 wallet_manager = WalletManager(DATA_DIR)
 token_manager = TokenManager()
 transfer_handler = TransferHandler(wallet_manager, token_manager)
-monitor_manager = MonitorManager(RPC_URL)
+monitor_manager = MonitorManager()
 solana_client = SolanaClient(RPC_URL)
 
 # File paths
@@ -45,10 +65,10 @@ def init_data_files():
         CONTRACTS_FILE: [],
         TRANSACTIONS_FILE: [],
         CONFIG_FILE: {
-            "maxSolPerTrade": 1.0,
+            "maxSolPerTrade": 0.0001,
             "gasFee": 1,
-            "sellDelay": 5,
-            "sellPercentage": 50
+            "sellDelay": 0,
+            "sellPercentage": 100
         }
     }
 
