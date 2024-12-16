@@ -314,6 +314,6 @@ def get_transactions():
 
 if __name__ == '__main__':
     try:
-        app.run(debug=True, port=9488, host='0.0.0.0')
+        app.run(debug=False, port=9488, host='0.0.0.0')
     finally:
         cleanup()

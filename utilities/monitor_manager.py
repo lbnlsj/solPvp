@@ -40,7 +40,7 @@ class MonitorManager:
         self.PUMP_PROGRAM_ID = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
 
     async def keepalive(self):
-        while self.is_running and self.websocket:
+        while 1:
             try:
                 print('ping')
                 if self.websocket.closed:
@@ -50,12 +50,12 @@ class MonitorManager:
 
                 await self.websocket.ping()
                 print('ping finish')
-                try:
-                    await asyncio.wait_for(self.websocket.pong(), timeout=self.ping_timeout)
-                except asyncio.TimeoutError:
-                    print("Ping timeout, reconnecting...")
-                    await self.reconnect()
-                    continue
+                # try:
+                #     await asyncio.wait_for(self.websocket.pong(), timeout=self.ping_timeout)
+                # except asyncio.TimeoutError:
+                #     print("Ping timeout, reconnecting...")
+                #     await self.reconnect()
+                #     continue
 
                 await asyncio.sleep(self.ping_interval)
 
@@ -120,11 +120,12 @@ class MonitorManager:
                 print(f"Started monitoring program: {program_id}")
                 print(f"Subscription ID: {self.subscription_id}")
 
-                keepalive_task = asyncio.create_task(self.keepalive())
+                # keepalive_task = asyncio.create_task(self.keepalive())
 
                 while self.is_running:
                     try:
                         msg = await websocket.recv()
+                        # print(1)
                         await self.handle_log_message(msg[0])
                     except Exception as e:
                         if isinstance(e, asyncio.CancelledError):
@@ -136,11 +137,11 @@ class MonitorManager:
                         await self.reconnect()
                         break
 
-                keepalive_task.cancel()
-                try:
-                    await keepalive_task
-                except asyncio.CancelledError:
-                    pass
+                # keepalive_task.cancel()
+                # try:
+                #     await keepalive_task
+                # except asyncio.CancelledError:
+                #     pass
 
         except Exception as e:
             print(f"Error in monitoring: {e}")
