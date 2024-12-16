@@ -233,7 +233,11 @@ def sell_token(mint_str: str, keypair: Keypair, percentage: int = 100, slippage:
         token_account = client.get_token_accounts_by_owner(
             keypair.pubkey(),
             TokenAccountOpts(coin_data.mint)
-        ).value[0]
+        ).value
+        if len(token_account) == 0:
+            return sell_token(mint_str, keypair, percentage, slippage)
+        else:
+            token_account = token_account[0]
 
         # Calculate amount to sell
         data = token_account.account.data
