@@ -9,7 +9,7 @@
 </head>
 <!-- 在 body 标签结束前添加模态框 HTML -->
 <!-- 在 </body> 前添加 -->
-<div id="transferModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+<div id="transferModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center" style="z-index: 999">
     <div class="bg-white rounded-lg p-6 w-96">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-semibold" id="modalTitle">代币转账</h3>
@@ -38,7 +38,7 @@
                     class="px-4 py-2 border rounded-md hover:bg-gray-100">取消
             </button>
             <button onclick="submitTransfer()"
-                    class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">确认
+                    class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600" id="confirmTransfer">确认
             </button>
         </div>
     </div>

@@ -4,6 +4,7 @@ import json
 import os
 import asyncio
 from functools import wraps
+from concurrent.futures import ThreadPoolExecutor
 
 # Import utilities
 from utilities.wallet_manager import WalletManager
@@ -13,6 +14,8 @@ from utilities.monitor_manager import MonitorManager
 from utilities.solana_client import SolanaClient
 
 app = Flask(__name__)
+executor = ThreadPoolExecutor()
+loop = None
 
 # Configuration
 DATA_DIR = "data"
@@ -56,13 +59,89 @@ init_data_files()
 
 
 def async_route(f):
-    """Decorator for async route handlers"""
+    """Decorator for async route handlers with proper event loop handling"""
 
     @wraps(f)
     def wrapped(*args, **kwargs):
-        return asyncio.run(f(*args, **kwargs))
+        # 获取当前的事件循环或创建新的
+        global loop
+        if loop is None:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        # 在事件循环中运行协程
+        return loop.run_until_complete(f(*args, **kwargs))
 
     return wrapped
+
+
+# 在导入部分添加
+from utilities.sniper_manager import SniperManager
+
+# 在 app 初始化后添加
+sniper_manager = SniperManager(DATA_DIR, monitor_manager, wallet_manager)
+
+
+# Modify these routes in app.py
+
+@app.route('/api/start_sniper', methods=['POST'])
+def start_sniper():
+    try:
+        config = request.json
+        save_data(config, CONFIG_FILE)
+
+        if sniper_manager.start():
+            return jsonify({
+                "status": "success",
+                "message": "Sniper started successfully"
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Sniper is already running"
+            }), 400
+    except Exception as e:
+        print(f"Error starting sniper: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/stop_sniper', methods=['POST'])
+def stop_sniper():
+    try:
+        if sniper_manager.stop():
+            return jsonify({
+                "status": "success",
+                "message": "Sniper stopped successfully"
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Sniper is not running"
+            }), 400
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+
+# Update the cleanup function
+def cleanup():
+    if sniper_manager.get_status():
+        sniper_manager.stop()
+
+
+@app.route('/api/sniper/status', methods=['GET'])
+def get_sniper_status():
+    """Get current sniper status"""
+    status = sniper_manager.get_status()
+    return jsonify({
+        "status": "success",
+        "is_running": status
+    })
 
 
 def load_data(file_path):
@@ -130,13 +209,14 @@ async def collect_funds():
     )
 
     if result['status'] == 'success':
-        save_transaction({
-            'type': '归集',
-            'token': data['tokenAddress'],
-            'amount': data['amount'],
-            'status': '成功',
-            'hash': result['signature']
-        })
+        for signature in result['successful_transfers']:
+            save_transaction({
+                'type': '归集',
+                'token': data['tokenAddress'],
+                'amount': data['amount'],
+                'status': '成功',
+                'hash': signature
+            })
 
     return jsonify(result)
 
@@ -155,13 +235,14 @@ async def distribute_funds():
     )
 
     if result['status'] == 'success':
-        save_transaction({
-            'type': '分发',
-            'token': data['tokenAddress'],
-            'amount': data['amount'],
-            'status': '成功',
-            'hash': result['signature']
-        })
+        for signature in result['successful_transfers']:
+            save_transaction({
+                'type': '分发',
+                'token': data['tokenAddress'],
+                'amount': data['amount'],
+                'status': '成功',
+                'hash': signature
+            })
 
     return jsonify(result)
 
@@ -208,29 +289,8 @@ def get_transactions():
     return jsonify(load_data(TRANSACTIONS_FILE))
 
 
-@app.route('/api/start_sniper', methods=['POST'])
-@async_route
-async def start_sniper():
-    try:
-        config = request.json
-        save_data(config, CONFIG_FILE)
-
-        # Start monitoring
-        await monitor_manager.start_monitoring()
-        return jsonify({"status": "success", "message": "Sniper started successfully"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-
-@app.route('/api/stop_sniper', methods=['POST'])
-@async_route
-async def stop_sniper():
-    try:
-        await monitor_manager.stop_monitoring()
-        return jsonify({"status": "success", "message": "Sniper stopped successfully"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    try:
+        app.run(debug=True)
+    finally:
+        cleanup()

@@ -1,7 +1,7 @@
 {
   "mode": "single",
-  "maxSolPerTrade": 1.23,
-  "gasFee": 0.0001,
+  "maxSolPerTrade": 0.001,
+  "gasFee": 1,
   "sellDelay": 3,
-  "sellPercentage": 50.23
+  "sellPercentage": 100
 }

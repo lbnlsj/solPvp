@@ -21,21 +21,124 @@ class TokenCreationInfo:
 
 class MonitorManager:
     def __init__(self, websocket_url: str = None):
-        """
-        Initialize the Solana logs monitor
-        Args:
-            websocket_url: WebSocket endpoint URL
-        """
-        self.endpoint = websocket_url or "wss://mainnet.helius-rpc.com/?api-key=bc8bd2ae-8330-4a02-9c98-2970d98545cd"
+        self.endpoint = "wss://mainnet.helius-rpc.com/?api-key=bc8bd2ae-8330-4a02-9c98-2970d98545cd"
         self.subscription_id = None
         self.websocket = None
         self.is_running = False
         self.callbacks = []
+        self.monitor_task = None
+        self.ping_interval = 30  # Send ping every 30 seconds
+        self.ping_timeout = 10  # Wait 10 seconds for pong response
 
         # Token program constants
         self.TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         self.ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         self.PUMP_PROGRAM_ID = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+
+    async def keepalive(self):
+        """Maintain WebSocket connection with periodic pings"""
+        while self.is_running and self.websocket:
+            try:
+                await self.websocket.ping()
+                try:
+                    await asyncio.wait_for(self.websocket.pong(), timeout=self.ping_timeout)
+                except asyncio.TimeoutError:
+                    print("Ping timeout, reconnecting...")
+                    await self.reconnect()
+                    break
+                await asyncio.sleep(self.ping_interval)
+            except Exception as e:
+                print(f"Keepalive error: {e}")
+                await self.reconnect()
+                break
+
+    async def reconnect(self):
+        """Reconnect the WebSocket connection"""
+        print("Attempting to reconnect...")
+        try:
+            # if self.websocket:
+            #     await self.websocket.close()
+            self.websocket = None
+            self.subscription_id = None
+            await self.start_monitoring()
+        except Exception as e:
+            print(f"Reconnection failed: {e}")
+            self.is_running = False
+
+    async def start_monitoring(self, program_id: Optional[str] = None):
+        """Start monitoring token program logs without blocking"""
+        if self.is_running:
+            return
+
+        self.is_running = True
+        program_id = program_id or self.TOKEN_PROGRAM_ID
+
+        try:
+            async with connect(self.endpoint) as websocket:
+                self.websocket = websocket
+
+                filter_ = RpcTransactionLogsFilterMentions(
+                    Pubkey.from_string(program_id)
+                )
+
+                await websocket.logs_subscribe(
+                    filter_=filter_,
+                    commitment=Commitment("processed")
+                )
+
+                first_resp = await websocket.recv()
+                self.subscription_id = first_resp[0].result
+
+                print(f"Started monitoring program: {program_id}")
+                print(f"Subscription ID: {self.subscription_id}")
+
+                # Start keepalive task
+                keepalive_task = asyncio.create_task(self.keepalive())
+
+                while self.is_running:
+                    try:
+                        msg = await websocket.recv()
+                        await self.handle_log_message(msg[0])
+                    except Exception as e:
+                        if isinstance(e, asyncio.CancelledError):
+                            break
+                        print(f"Error handling message: {e}")
+                        if not self.is_running:
+                            break
+                        await self.reconnect()
+                        break
+
+                # Cancel keepalive task when monitoring stops
+                keepalive_task.cancel()
+                try:
+                    await keepalive_task
+                except asyncio.CancelledError:
+                    pass
+
+        except Exception as e:
+            print(f"Error in monitoring: {e}")
+            # self.is_running = False
+            # raise
+            await self.reconnect()
+        finally:
+            self.is_running = False
+            await self.stop_monitoring()
+
+    async def get_websocket(self):
+        """Get websocket connection"""
+        if self.websocket is None:
+            self.websocket = await connect(self.endpoint)
+        return self.websocket
+
+    def create_filter(self, program_id: str):
+        """Create program filter"""
+        return RpcTransactionLogsFilterMentions(
+            Pubkey.from_string(program_id)
+        )
+
+    def get_commitment(self):
+        """Get commitment level"""
+        return Commitment("processed")
 
     def add_callback(self, callback: Callable):
         """
@@ -175,47 +278,6 @@ class MonitorManager:
             print(f"Error processing message: {e}")
             return False
 
-    async def start_monitoring(self, program_id: Optional[str] = None):
-        """
-        Start monitoring token program logs
-        Args:
-            program_id: Program ID to monitor (defaults to Token program)
-        """
-        if self.is_running:
-            return
-
-        self.is_running = True
-        program_id = program_id or self.TOKEN_PROGRAM_ID
-
-        try:
-            async with connect(self.endpoint) as websocket:
-                self.websocket = websocket
-
-                filter_ = RpcTransactionLogsFilterMentions(
-                    Pubkey.from_string(program_id)
-                )
-
-                await websocket.logs_subscribe(
-                    filter_=filter_,
-                    commitment=Commitment("processed")
-                )
-
-                first_resp = await websocket.recv()
-                self.subscription_id = first_resp[0].result
-
-                print(f"Started monitoring program: {program_id}")
-                print(f"Subscription ID: {self.subscription_id}")
-
-                while self.is_running:
-                    msg = await websocket.recv()
-                    await self.handle_log_message(msg[0])
-
-        except Exception as e:
-            print(f"Error in monitoring: {e}")
-            self.is_running = False
-            await self.stop_monitoring()
-            raise
-
     async def stop_monitoring(self):
         """Stop monitoring logs and clean up"""
         self.is_running = False
@@ -228,3 +290,60 @@ class MonitorManager:
             finally:
                 self.subscription_id = None
                 self.websocket = None
+
+
+if __name__ == '__main__':
+    import signal
+    import sys
+
+    m = MonitorManager()
+
+
+    # 添加测试回调函数
+    async def test_callback(token_info, tx_signature):
+        print("\n=== Token Creation Event ===")
+        print(f"Name: {token_info.name}")
+        print(f"Symbol: {token_info.symbol}")
+        print(f"Mint: {token_info.mint}")
+        print(f"Date: {token_info.date}")
+        print(f"Transaction: {tx_signature}")
+        print("=========================\n")
+
+
+    m.add_callback(test_callback)
+
+
+    # 处理退出信号
+    def signal_handler(sig, frame):
+        print('\nReceived stop signal. Shutting down...')
+        m.is_running = False
+
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+
+    async def main():
+        try:
+            print("Starting monitor... Press Ctrl+C to stop")
+            print("Monitoring for token creation events...")
+
+            # 监控 Pump.fun 程序
+            program_id = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+            await m.start_monitoring(program_id)
+
+        except Exception as e:
+            print(f"Error in main: {e}")
+        finally:
+            await m.stop_monitoring()
+            print("Monitor stopped")
+
+
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nProgram terminated by user")
+    except Exception as e:
+        print(f"Fatal error: {e}")
+    finally:
+        sys.exit(0)
