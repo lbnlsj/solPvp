@@ -1,97 +1,195 @@
-# Solana 交易机器人使用指南
-![1.png](img/1.png)
-## 界面功能说明
+# Ubuntu SolPvp 项目安装部署指南
 
-### 1. 机器人配置
+## 1. 系统要求
+- Ubuntu 20.04 或更新版本
+- Python 3.8 或以上
 
-配置区域包含以下参数设置：
-- **买入花费 SOL**: 每次买入代币使用的 SOL 数量（如图例：0.001 SOL）
-- **Gas 费用**: 设置交易的 gas 费用倍数，范围 1-10（如图例：1）
-- **卖出等待时间**: 买入成功后等待多少秒进行卖出（如图例：3秒）
-- **卖出比例**: 卖出代币的百分比（如图例：100%）
 
-设置完成后点击蓝色的"保存配置"按钮进行保存。
+## 2. 安装 Miniconda
+```bash
+# 下载 Miniconda 安装脚本
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 
-### 2. 狙击控制
+# 运行安装脚本
+bash Miniconda3-latest-Linux-x86_64.sh
 
-包含以下功能：
-- **状态显示**: 显示当前是否运行中
-- **狙击方式**: 下拉选择
-  - 单钱包狙击：使用单个钱包进行交易
-  - 多钱包狙击：使用所有添加的钱包同时交易
-- **控制按钮**:
-  - 启动狙击（绿色按钮）
-  - 停止狙击（红色按钮）
+# 使环境变量生效
+source ~/.bashrc
+```
 
-### 3. 钱包管理
+## 3. 验证 Conda 安装
+```bash
+conda --version
+```
 
-功能包括：
-- **添加钱包**: 
-  - 在文本框中输入钱包私钥（每行一个）
-  - 点击蓝色的"添加钱包"按钮
-- **清空钱包**: 点击灰色的"清空钱包"按钮删除所有钱包
-- **钱包操作**:
-  - 归集：点击黄色"归集"按钮将代币转移到指定钱包
-  - 分发：点击紫色"分发"按钮将代币分发到其他钱包
-![2.png](img/2.png)
-### 4. 合约过滤
+## 4. 配置 Python 环境
+```bash
+# 创建新的 conda 环境
+conda create -n solpvp python=3.10
 
-用于管理需要监控的代币合约：
-- **添加合约**: 
-  - 在输入框中输入需要监控的合约地址（每行一个）
-  - 点击蓝色的"添加合约"按钮
-- **清空合约**: 点击灰色的"清空合约"按钮清除所有监控的合约
+# 激活环境
+source activate solpvp
+```
 
-### 5. 交易记录
+## 5. 安装系统依赖
+```bash
+# 安装编译工具和开发包
+sudo apt update
+sudo apt install -y python3-dev build-essential git
+```
 
-显示所有交易的详细信息，包含以下列：
-- **时间**: 交易发生的具体时间
-- **类型**: 买入/卖出
-- **TOKEN 地址**: 代币合约地址
-- **数量**: 交易数量
-- **状态**: 成功/失败
-- **交易 HASH**: 可点击跳转到区块浏览器查看交易详情
+## 6. 克隆项目代码
+```bash
+git clone https://github.com/lbnlsj/solPvp.git
+cd solPvp
+```
 
-## 操作指南
+## 7. pip requirements.txt
+```bash
+pip install -r requirements.txt
 
-### 开始使用
+```
 
-1. 首先在机器人配置区域设置：
-   - 买入数量（如 0.001 SOL）
-   - Gas 费用倍数
-   - 卖出等待时间（如 3 秒）
-   - 卖出比例（如 100%）
-   
-2. 添加钱包：
-   - 在钱包管理区域输入私钥
-   - 可以看到添加的钱包会显示在下方列表中
-   
-3. （可选）添加要监控的合约地址：
-   - 在合约过滤区域输入合约地址
-   - 如果不添加则监控所有新代币
+## 8. 创建项目目录结构
+```bash
+无
+```
 
-4. 启动交易：
-   - 选择单钱包或多钱包模式
-   - 点击"启动狙击"按钮开始运行
-   - 界面会显示"运行中"状态
-   
-5. 查看交易记录：
-   - 在底部表格可以实时查看所有交易情况
-   - 包括买入和卖出的详细记录
-   - 可通过交易 HASH 链接查看区块链详情
+## 9. 运行项目
+```bash
+python app.py
+```
+服务器将在 http://localhost:9488 启动
+
+## 10. 验证部署
+
+检查服务是否正常运行：
+```bash
+# 检查进程
+ps aux | grep python
+
+# 检查端口
+netstat -tupln | grep 9488
+
+# 检查日志输出
+tail -f nohup.log  # 如果使用 nohup 运行
+```
+
+## 11. 后台运行（可选）
+```bash
+# 使用 nohup 后台运行
+nohup python app.py > nohup.log 2>&1 &
+
+# 查看进程
+ps aux | grep python
+
+# 实时查看日志
+tail -f nohup.log
+```
+
+## 12. 常见问题解决
+
+### 依赖安装失败
+```bash
+# 升级 pip
+pip install --upgrade pip
+
+# 安装 wheel
+pip install wheel
+
+# 重新安装依赖
+pip install --no-cache-dir -r requirements.txt
+```
+
+### 权限问题
+```bash
+# 修改项目目录权限
+sudo chown -R $USER:$USER .
+chmod -R 755 .
+```
+
+### 端口被占用
+```bash
+# 查找占用端口的进程
+sudo netstat -tupln | grep 9488
+
+# 终止进程
+sudo kill -9 <进程ID>
+```
+
+## 13. 维护建议
+
+1. 定期更新代码：
+```bash
+git pull origin main
+pip install -r requirements.txt --upgrade
+```
+
+2. 数据备份：
+```bash
+# 备份数据目录
+cp -r data/ data_backup_$(date +%Y%m%d)
+```
+
+3. 日志管理：
+```bash
+# 定期清理日志
+find . -name "*.log" -size +100M -exec rm -f {} \;
+```
+
+## 14. 监控
+
+1. 监控系统资源：
+```bash
+# CPU 和内存使用
+top
+
+# 磁盘使用
+df -h
+
+# 查看日志
+tail -f nohup.log
+```
+
+2. 检查服务状态：
+```bash
+# 检查程序是否运行
+ps aux | grep python
+
+# 检查端口状态
+netstat -tupln | grep 9488
+```
 
 ## 注意事项
 
-1. **资金安全**：
-   - 建议使用新钱包进行交易，不要使用主要资金钱包
-   - 确保钱包中有足够的 SOL 支付 gas 费
+1. 确保服务器防火墙配置正确：
+```bash
+sudo ufw allow 9488
+```
 
-2. **参数设置**：
-   - 买入数量要根据资金情况合理设置
-   - Gas 费用倍数会影响交易速度，建议根据市场情况调整
-   - 卖出等待时间要根据具体策略来设置
+2. 定期检查日志文件大小：
+```bash
+ls -lh nohup.log
+```
 
-3. **运行管理**：
-   - 运行中如需停止，点击"停止狙击"按钮
-   - 可以通过交易记录实时监控交易状态
-   - 如遇异常可以尝试停止后重新启动
+3. 保持系统更新：
+```bash
+sudo apt update
+sudo apt upgrade
+```
+
+4. 定期备份数据：
+   - 配置文件
+   - 交易记录
+   - 钱包信息
+
+## 结束语
+
+完成以上步骤后，SolPvp 项目应该已经在 Ubuntu 系统上成功部署并运行。如果遇到问题，请检查：
+- Python 环境配置
+- 依赖包安装状态
+- 网络连接
+- 系统资源使用情况
+- 日志输出信息
+
+建议保持系统和依赖包的定期更新，并做好数据备份工作。

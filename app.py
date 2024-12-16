@@ -313,7 +313,7 @@ def get_transactions():
 
 
 if __name__ == '__main__':
-    sniper_manager.start()
+    # sniper_manager.start()
     try:
         app.run(debug=False, port=9488, host='0.0.0.0')
 
