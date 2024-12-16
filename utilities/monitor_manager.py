@@ -60,6 +60,7 @@ class MonitorManager:
             #     await self.websocket.close()
             self.websocket = None
             self.subscription_id = None
+            self.is_running = False
             await self.start_monitoring()
         except Exception as e:
             print(f"Reconnection failed: {e}")
