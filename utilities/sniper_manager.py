@@ -55,8 +55,8 @@ class SniperManager:
                         contracts = json.load(f)
 
                     # 检查是否应该监控这个代币
-                    if contracts and token_info.mint not in contracts:
-                        return
+                    # if contracts and token_info.mint not in contracts:
+                    #     return
 
                     # 获取可用钱包
                     wallets = wallet_manager.get_all_pubkeys()
@@ -170,16 +170,19 @@ class SniperManager:
                     })
 
             async def run_monitor():
-                try:
-                    # 添加代币创建事件的回调
-                    monitor_manager.add_callback(handle_token_creation)
-
-                    # 开始监控
-                    program_id = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
-                    await monitor_manager.start_monitoring(program_id)
-                except Exception as e:
-                    print(f"监控线程出错error: {e}")
-                    stop_event.set()
+                # monitor_manager.add_callback(handle_token_creation)
+                program_id = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+                await monitor_manager.start_monitoring(program_id)
+                # try:
+                #     # 添加代币创建事件的回调
+                #     monitor_manager.add_callback(handle_token_creation)
+                #
+                #     # 开始监控
+                #     program_id = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+                #     await monitor_manager.start_monitoring(program_id)
+                # except Exception as e:
+                #     print(f"监控线程出错error: {e}")
+                #     stop_event.set()
 
             async def check_stop():
                 while not stop_event.is_set():
@@ -221,6 +224,7 @@ class SniperManager:
 
     def stop(self):
         """停止狙击器线程"""
+        self.monitor_manager.is_running = False
         if not self.get_status():
             return False
 

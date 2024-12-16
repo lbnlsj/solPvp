@@ -95,9 +95,18 @@ class MonitorManager:
                 self.is_running = False
 
     def test(self):
-        while 1:
-            print('1')
-            time.sleep(1)
+        async def ping():
+            while 1:
+                try:
+                    print('1')
+                    await self.websocket.ping()
+                except Exception as e:
+                    pass
+                await asyncio.sleep(15)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.create_task(ping())
+        loop.run_forever()
 
     # 在 MonitorManager 类中修改 start_monitoring 方法
     async def start_monitoring(self, program_id: Optional[str] = None):
