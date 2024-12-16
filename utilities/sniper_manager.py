@@ -210,7 +210,7 @@ class SniperManager:
             self.thread = threading.Thread(
                 target=self.sniper_thread_func,
                 args=(self.stop_event, self.data_dir, self.monitor_manager, self.wallet_manager),
-                daemon=True
+                daemon=False
             )
             self.thread.start()
             self.save_status(True)

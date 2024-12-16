@@ -6,6 +6,8 @@ from solders.rpc.config import RpcTransactionLogsFilter, RpcTransactionLogsFilte
 from solana.rpc.commitment import Commitment
 import json
 import base64
+import time
+import threading
 import struct
 import traceback
 from typing import Optional, Dict, List, Callable
@@ -92,63 +94,64 @@ class MonitorManager:
             else:
                 self.is_running = False
 
+    def test(self):
+        while 1:
+            print('1')
+            time.sleep(1)
+
+    # 在 MonitorManager 类中修改 start_monitoring 方法
     async def start_monitoring(self, program_id: Optional[str] = None):
         if self.is_running:
-            print('正在运行中，退出')
+            print('已在运行中')
             return
+
+        threading.Thread(target=self.test, args=()).start()
 
         print('开始运行监控')
         self.is_running = True
         program_id = program_id or self.TOKEN_PROGRAM_ID
 
-        try:
-            async with connect(self.endpoint) as websocket:
-                self.websocket = websocket
+        while self.is_running:
+            print('开始创建监控')
+            try:
+                async with connect(self.endpoint) as websocket:
+                    print('监控创建成功')
+                    self.websocket = websocket
 
-                filter_ = RpcTransactionLogsFilterMentions(
-                    Pubkey.from_string(program_id)
-                )
+                    filter_ = RpcTransactionLogsFilterMentions(
+                        Pubkey.from_string(program_id)
+                    )
 
-                await websocket.logs_subscribe(
-                    filter_=filter_,
-                    commitment=Commitment("processed")
-                )
+                    await websocket.logs_subscribe(
+                        filter_=filter_,
+                        commitment=Commitment("processed")
+                    )
 
-                first_resp = await websocket.recv()
-                self.subscription_id = first_resp[0].result
+                    first_resp = await websocket.recv()
+                    self.subscription_id = first_resp[0].result
 
-                print(f"Started monitoring program: {program_id}")
-                print(f"Subscription ID: {self.subscription_id}")
+                    print(f"Started monitoring program: {program_id}")
+                    print(f"Subscription ID: {self.subscription_id}")
 
-                # keepalive_task = asyncio.create_task(self.keepalive())
-
-                while self.is_running:
-                    try:
-                        msg = await websocket.recv()
-                        # print(1)
-                        await self.handle_log_message(msg[0])
-                    except Exception as e:
-                        if isinstance(e, asyncio.CancelledError):
+                    # 使用异步迭代器模式
+                    async for msg in websocket:
+                        if not self.is_running:
                             break
-                        traceback.print_exc()
-                        print(f"Error handling message: {e}")
-                        # if not self.is_running:
-                        #     break
-                        await self.reconnect()
-                        break
+                        try:
+                            await self.handle_log_message(msg[0])
+                        except Exception as e:
+                            print(f"Error handling message: {e}")
+                            continue
 
-                # keepalive_task.cancel()
-                # try:
-                #     await keepalive_task
-                # except asyncio.CancelledError:
-                #     pass
+            except Exception as e:
+                print(f"Connection error: {e}")
+                if self.is_running:
+                    print("Attempting to reconnect in 5 seconds...")
+                    await asyncio.sleep(5)
+                continue
 
-        except Exception as e:
-            print(f"Error in monitoring: {e}")
-            await self.reconnect()
-        finally:
-            if not self.is_running:
-                await self.stop_monitoring()
+            finally:
+                continue
 
     @staticmethod
     def parse_create_event_log(base64_log: str) -> Optional[TokenCreationInfo]:
