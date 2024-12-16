@@ -10,7 +10,6 @@ from .pump import buy_token, sell_token
 import threading
 from solders.keypair import Keypair
 
-
 class SniperManager:
     def __init__(self, data_dir: str, monitor_manager: MonitorManager, wallet_manager: WalletManager):
         self.data_dir = data_dir
@@ -48,11 +47,12 @@ class SniperManager:
             async def handle_token_creation(token_info: TokenCreationInfo, creation_tx: str):
                 try:
                     # 加载配置
+                    print('买')
                     with open(os.path.join(data_dir, "config.json"), 'r') as f:
                         config = json.load(f)
 
-                    with open(os.path.join(data_dir, "contracts.json"), 'r') as f:
-                        contracts = json.load(f)
+                    # with open(os.path.join(data_dir, "contracts.json"), 'r') as f:
+                    #     contracts = json.load(f)
 
                     # 检查是否应该监控这个代币
                     # if contracts and token_info.mint not in contracts:
@@ -128,6 +128,7 @@ class SniperManager:
                         # 等待所有卖出任务完成
                         if sell_tasks:
                             await asyncio.gather(*sell_tasks)
+                    print('结束')
 
                 except Exception as e:
                     print(f"处理代币创建时出错: {e}")
@@ -170,7 +171,7 @@ class SniperManager:
                     })
 
             async def run_monitor():
-                # monitor_manager.add_callback(handle_token_creation)
+                monitor_manager.add_callback(handle_token_creation)
                 program_id = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
                 await monitor_manager.start_monitoring(program_id)
                 # try:

@@ -22,6 +22,9 @@ class TokenCreationInfo:
     date: str
 
 
+from concurrent.futures import ThreadPoolExecutor
+
+
 class MonitorManager:
     def __init__(self, websocket_url: str = None):
         self.endpoint = websocket_url or "wss://mainnet.helius-rpc.com/?api-key=bc8bd2ae-8330-4a02-9c98-2970d98545cd"
@@ -30,16 +33,76 @@ class MonitorManager:
         self.is_running = False
         self.callbacks = []
         self.monitor_task = None
-        self.ping_interval = 15
-        self.ping_timeout = 5
-        self.max_retries = 5
-        self.retry_delay = 5
-        self.current_retries = 0
+        # 创建线程池
+        self.thread_pool = ThreadPoolExecutor(max_workers=10)
 
-        # Token program constants
-        self.TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        self.ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        self.PUMP_PROGRAM_ID = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+    def run_callback_in_thread(self, callback, token_info, tx_signature):
+        """在线程中执行回调的包装函数"""
+        try:
+            # 创建新的事件循环给这个线程
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            # 在新的事件循环中运行回调
+            loop.run_until_complete(callback(token_info, tx_signature))
+            loop.close()
+        except Exception as e:
+            print(f"Thread callback error: {e}")
+
+    async def handle_log_message(self, msg):
+        try:
+            if not hasattr(msg, 'result'):
+                return False
+
+            result = msg.result
+            if not hasattr(result, 'value'):
+                return False
+
+            value = result.value
+            if not (hasattr(value, 'signature') and hasattr(value, 'logs')):
+                return False
+
+            tx_signature = value.signature
+            logs = value.logs
+
+            token_info = self.is_pump_token_creation(logs)
+            if token_info:
+                print(f"New token detected: {token_info}")
+                print(f"Transaction: https://solscan.io/tx/{tx_signature}")
+
+                # 在线程池中执行每个回调
+                for callback in self.callbacks:
+                    self.thread_pool.submit(
+                        self.run_callback_in_thread,
+                        callback,
+                        token_info,
+                        tx_signature
+                    )
+
+            return True
+
+        except Exception as e:
+            print(f"Error processing message: {e}")
+            return False
+
+    async def stop_monitoring(self):
+        """停止监控并清理资源"""
+        self.is_running = False
+        if self.websocket and self.subscription_id:
+            try:
+                await self.websocket.logs_unsubscribe(self.subscription_id)
+                print(f"Stopped monitoring logs for subscription: {self.subscription_id}")
+            except Exception as e:
+                print(f"Error stopping monitor: {e}")
+            finally:
+                self.subscription_id = None
+                self.websocket = None
+
+        # 关闭线程池
+        self.thread_pool.shutdown(wait=False)
+
+
+
 
     async def keepalive(self):
         while 1:
@@ -231,54 +294,11 @@ class MonitorManager:
             print(f"Error checking pump token creation: {e}")
             return None
 
-    async def handle_log_message(self, msg):
-        try:
-            if not hasattr(msg, 'result'):
-                return False
-
-            result = msg.result
-            if not hasattr(result, 'value'):
-                return False
-
-            value = result.value
-            if not (hasattr(value, 'signature') and hasattr(value, 'logs')):
-                return False
-
-            tx_signature = value.signature
-            logs = value.logs
-
-            token_info = self.is_pump_token_creation(logs)
-            if token_info:
-                print(f"New token detected: {token_info}")
-                print(f"Transaction: https://solscan.io/tx/{tx_signature}")
-
-                for callback in self.callbacks:
-                    try:
-                        await callback(token_info, tx_signature)
-                    except Exception as e:
-                        print(f"Callback error: {e}")
-                        continue
-
-            return True
-
-        except Exception as e:
-            print(f"Error processing message: {e}")
-            return False
 
     def add_callback(self, callback: Callable):
         self.callbacks.append(callback)
 
-    async def stop_monitoring(self):
-        self.is_running = False
-        if self.websocket and self.subscription_id:
-            try:
-                await self.websocket.logs_unsubscribe(self.subscription_id)
-                print(f"Stopped monitoring logs for subscription: {self.subscription_id}")
-            except Exception as e:
-                print(f"Error stopping monitor: {e}")
-            finally:
-                self.subscription_id = None
-                self.websocket = None
+
 
     async def get_websocket(self):
         """Get websocket connection"""
