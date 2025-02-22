@@ -20,12 +20,12 @@ import logging
 
 # 配置 Flask 日志
 class NoRequestFilter(logging.Filter):
-    def filter(self,record):
+    def filter(self, record):
         return not (
                 '/api/status' in record.getMessage() or
                 '/api/transactions' in record.getMessage() or
                 '/api/sniper/status' in record.getMessage()
-            )
+        )
 
 
 # 获取 Werkzeug 日志记录器并添加过滤器
